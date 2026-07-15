@@ -110,6 +110,7 @@ h2 { color: var(--text); font-size: 20px; font-weight: 600; margin: 0 0 var(--s1
   padding: 10px 14px; background: var(--surface); border: 1px solid var(--line);
   border-radius: var(--radius); text-align: center;
 }
+.estate-summary:empty { display: none; }
 .estate-summary strong { color: var(--gold); font-family: ui-monospace, "SF Mono", monospace; }
 #estate-list { display: flex; flex-direction: column; gap: var(--s1); }
 .estate-empty { color: var(--text-dim); font-size: 13px; text-align: center; padding: var(--s3) 0; }
