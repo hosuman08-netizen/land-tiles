@@ -23,6 +23,7 @@
 
       <nav>
         <button onclick="showMap()">Map</button>
+        <button onclick="showEstate()">My Land</button>
         <button onclick="showVoice()">Voice Claim</button>
         <button onclick="showLive()">Live</button>
         <button onclick="showMagic()">Magic</button>
@@ -33,6 +34,13 @@
     <div id="map-view">
       <div id="map" style="height:400px"></div>
       <p id="map-info">Click tiles to buy. FOMO prime locations. Use Harvest Credits or $EROS.</p>
+    </div>
+
+    <div id="estate-view" style="display:none">
+      <h2>My Land</h2>
+      <div id="estate-summary" class="estate-summary"></div>
+      <div id="estate-list"></div>
+      <p class="map-info">Value = base price × vitality × aura. Develop to grow it, sell to realize gains. Virtual land only.</p>
     </div>
 
     <div id="voice-view" style="display:none">

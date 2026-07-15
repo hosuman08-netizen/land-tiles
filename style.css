@@ -103,6 +103,34 @@ h2 { color: var(--text); font-size: 20px; font-weight: 600; margin: 0 0 var(--s1
 #codex > div:first-child { border-left-color: var(--gold); }
 #codex p { color: var(--text-dim); font-size: 13px; }
 
+/* ---- My Land (portfolio + trading) ---- */
+.estate-summary {
+  font-size: 13px; color: var(--text-dim); margin: 0 0 var(--s2);
+  padding: 10px 14px; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); text-align: center;
+}
+.estate-summary strong { color: var(--gold); font-family: ui-monospace, "SF Mono", monospace; }
+#estate-list { display: flex; flex-direction: column; gap: var(--s1); }
+.estate-empty { color: var(--text-dim); font-size: 13px; text-align: center; padding: var(--s3) 0; }
+.estate-card {
+  background: var(--surface); border: 1px solid var(--line); border-left: 2px solid var(--gold-dim);
+  border-radius: var(--radius); padding: 12px 14px;
+}
+.estate-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s1); }
+.estate-name { color: var(--text); font-weight: 600; font-size: 15px; }
+.estate-val {
+  font-family: ui-monospace, "SF Mono", monospace; font-size: 14px; font-weight: 600;
+  white-space: nowrap;
+}
+.estate-val em { font-style: normal; font-size: 11px; margin-left: 4px; }
+.estate-val.up, .up { color: #7fc99a; }
+.estate-val.down, .down { color: #d99a7f; }
+.estate-meta { color: var(--text-dim); font-size: 11px; margin: 6px 0 10px; letter-spacing: .02em; }
+.estate-actions { display: flex; gap: var(--s1); flex-wrap: wrap; }
+.estate-actions button { font-size: 12px; padding: 7px 12px; }
+.estate-actions .sell-btn { border-color: var(--gold-dim); color: var(--gold); }
+.estate-actions .sell-btn:hover { border-color: var(--gold); background: var(--surface-2); }
+
 /* legacy helpers kept */
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
 .tile-card { background: var(--surface); border: 1px solid var(--line); padding: var(--s1); border-radius: var(--radius); text-align: center; }
