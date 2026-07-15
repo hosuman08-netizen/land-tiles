@@ -1,18 +1,18 @@
-// p11 E2Verse - Metaverse like Earth2
-let balance = 1420;
+// E2Verse — virtual land on a real-world map (fictional, 18+, no real property)
+let gems = 1420;
 let credits = 850;
 let owned = JSON.parse(localStorage.getItem('p11_owned') || '[]');
-let codex = JSON.parse(localStorage.getItem('p11_codex') || '[]');
-let tileData = JSON.parse(localStorage.getItem('p11_tileData') || '{}'); // BIRTH state: vitality, builds[], aura (p6+p5+p9+p10 cross)
+let ledger = JSON.parse(localStorage.getItem('p11_ledger') || '[]');
+let tileData = JSON.parse(localStorage.getItem('p11_tileData') || '{}'); // per-tile state: vitality, builds[], aura
 let map, currentTile;
 const tileRects = {}; // tileId -> Leaflet rectangle, so sells can recolor the map
 
-// All switchable views. showX() hides every view then reveals one.
-const P11_VIEWS = ['map-view', 'estate-view', 'voice-view', 'live-view', 'notebook-view', 'magic-view'];
+// All switchable views. showView() hides every view then reveals one.
+const VIEWS = ['map-view', 'estate-view', 'voice-view', 'live-view', 'ledger-view', 'develop-view'];
 
 // === LAND VALUE ENGINE ===
 // A tile's market value is DERIVED, not invented: base price grown by the same
-// vitality/aura the mutation engine already tracks. Display == code, always.
+// vitality/aura the develop engine already tracks. Display == code, always.
 //   value = basePrice × vitality × (1 + aura × AURA_WEIGHT)
 // This is the number shown in the portfolio and paid out on sale — one source of truth.
 const AURA_WEIGHT = 0.3;
@@ -32,13 +32,13 @@ function portfolioValue() {
 }
 
 function showView(id) {
-  P11_VIEWS.forEach(v => {
+  VIEWS.forEach(v => {
     const el = document.getElementById(v);
     if (el) el.style.display = (v === id) ? 'block' : 'none';
   });
   // Highlight the nav button that opened this view (matches by onclick handler name).
   const handler = { 'map-view':'showMap', 'estate-view':'showEstate', 'voice-view':'showVoice',
-                    'live-view':'showLive', 'notebook-view':'showNotebook', 'magic-view':'showMagic' }[id];
+                    'live-view':'showLive', 'ledger-view':'showLedger', 'develop-view':'showDevelop' }[id];
   document.querySelectorAll('nav button').forEach(b => {
     const attr = b.getAttribute('onclick') || '';
     b.classList.toggle('active', handler && attr.indexOf(handler) === 0);
@@ -46,7 +46,12 @@ function showView(id) {
 }
 
 function connectWallet() {
-  alert('Wallet connected (mock). p10 stable credits linked.');
+  const el = document.getElementById('balance');
+  if (el) el.classList.add('linked');
+  const btn = document.querySelector('.wallet button');
+  if (btn) { btn.textContent = 'Wallet Linked'; btn.disabled = true; }
+  addToLedger('Wallet linked. Balances active.');
+  updateUI();
 }
 
 function initMap() {
@@ -55,7 +60,7 @@ function initMap() {
     attribution: '© OSM contributors | Virtual land only'
   }).addTo(map);
 
-  // Demo tiles - in real would be dynamic grid
+  // Starter tiles - a live build would generate a dynamic grid.
   const demoTiles = [
     {id:1, lat:37.5, lng:127, name:"Seoul Tile", price:50},
     {id:2, lat:40.7, lng:-74, name:"NYC Prime", price:120},
@@ -88,12 +93,12 @@ function tileTooltip(t) {
 
 function buyTile(tile, rect) {
   if (owned.includes(tile.id)) {
-    alert('Already owned. Develop it.');
+    alert('You already own this tile. Develop it to grow its value.');
     return;
   }
   const cost = tile.price;
   if (credits < cost) {
-    alert('Need more Harvest Credits. p10 bridge (legal framing).');
+    alert('Not enough Credits for this tile.');
     return;
   }
   credits -= cost;
@@ -112,31 +117,30 @@ function buyTile(tile, rect) {
   });
   saveTileData();
 
-  // BIRTH 1 trigger — first mutation on claim
-  const s = (window.getP6LungSurprise && window.getP6LungSurprise()) || 0.42;
-  const boost = mutateTileFromCodex(tile.id, s, 0.28);
-  addToCodex(`Claimed ${tile.name} for ${cost} Cr. Value now ${tileMarketValue(tile.id).toFixed(0)} Cr.`);
+  // First development pulse on claim.
+  const s = (window.getVoiceSurprise && window.getVoiceSurprise()) || 0.42;
+  mutateTile(tile.id, s, 0.28);
+  addToLedger(`Claimed ${tile.name} for ${cost} Cr. Value now ${tileMarketValue(tile.id).toFixed(0)} Cr.`);
   updateUI();
   alert(`Bought ${tile.name} for ${cost} Cr!\nLive value: ${tileMarketValue(tile.id).toFixed(0)} Cr. Develop it to grow value.`);
 }
 
 function claimWithVoice() {
   if (!navigator.mediaDevices) {
-    alert('Mic needed for p6 voice. Fallback claim.');
+    alert('A microphone is needed for voice claim. Falling back to a standard claim.');
     return;
   }
   const status = document.getElementById('voice-status');
-  status.textContent = 'Recording p6 Lung... speak your claim.';
+  status.textContent = 'Recording... speak your claim.';
 
   navigator.mediaDevices.getUserMedia({audio:true}).then(stream => {
     const rec = new MediaRecorder(stream);
     rec.ondataavailable = e => {
-      // Simulate p6
-      const surprise = (window.getP6LungSurprise && window.getP6LungSurprise()) || (Math.random() * 0.5 + 0.3);
-      const ache = 0.25 + Math.random()*0.4; // 창발 pain
-      status.textContent = `p6 Surprise: ${surprise.toFixed(2)}. Tile claimed with boost!`;
+      const surprise = (window.getVoiceSurprise && window.getVoiceSurprise()) || (Math.random() * 0.5 + 0.3);
+      const energy = 0.25 + Math.random()*0.4;
+      status.textContent = `Voice energy: ${surprise.toFixed(2)}. Tile claimed with a boost!`;
 
-      // Auto buy + BIRTH 1 Codex Mutation
+      // Auto buy + first development pulse
       const demo = {id: Date.now(), lat:20, lng:0, name:"Voice Tile", price:20};
       const paid = 15;
       credits -= paid;
@@ -147,8 +151,8 @@ function claimWithVoice() {
         lat: demo.lat, lng: demo.lng, boughtAt: Date.now()
       });
       saveTileData();
-      const boost = mutateTileFromCodex(demo.id, surprise, ache);
-      addToCodex(`Voice claimed ${demo.name} for ${paid} Cr. Value now ${tileMarketValue(demo.id).toFixed(0)} Cr.`);
+      mutateTile(demo.id, surprise, energy);
+      addToLedger(`Voice claimed ${demo.name} for ${paid} Cr. Value now ${tileMarketValue(demo.id).toFixed(0)} Cr.`);
       updateUI();
       stream.getTracks().forEach(t=>t.stop());
     };
@@ -166,7 +170,7 @@ function showMap() {
   setTimeout(() => { if (map) map.invalidateSize(); }, 50);
 }
 
-// === FEATURE A: MY LAND (portfolio) ===
+// === MY LAND (portfolio) ===
 // Every owned tile rendered with its LIVE market value, gain/loss vs paid,
 // vitality/aura, builds, and real Develop + Sell actions. Ownership made tangible.
 function showEstate() {
@@ -205,7 +209,7 @@ function renderEstate() {
         paid ${paid} Cr · vitality ${(t.vitality||1).toFixed(2)} · aura ${(t.aura||0).toFixed(2)}${builds ? ` · ${builds} build${builds>1?'s':''}` : ''}
       </div>
       <div class="estate-actions">
-        <button onclick="castMagicOnTile(${id}, '${(name+'').replace(/'/g,'')}'); renderEstate();">🪄 Develop (+value)</button>
+        <button onclick="developTile(${id}, '${(name+'').replace(/'/g,'')}'); renderEstate();">🏗 Develop (+value)</button>
         <button class="sell-btn" onclick="sellTile(${id})">💱 Sell for ${value.toFixed(0)} Cr</button>
       </div>
     </div>`;
@@ -219,10 +223,10 @@ function renderEstate() {
     `Portfolio: <strong>${totalValue.toFixed(0)} Cr</strong> across ${owned.length} tile${owned.length>1?'s':''} · invested ${totalPaid} Cr · <span class="${netGain>=0?'up':'down'}">${nsign}${netGain.toFixed(0)}%</span>`;
 }
 
-// === FEATURE B: TRADING (sell back to market) ===
+// === TRADING (sell back to market) ===
 // Sell realizes the tile's CURRENT market value into credits — the exact number
 // shown in the portfolio (tileMarketValue), so gains/losses are honest. The tile
-// leaves your holdings, the map recolors, and the trade is logged to the Codex.
+// leaves your holdings, the map recolors, and the trade is logged to the Ledger.
 function sellTile(id) {
   id = typeof id === 'string' && /^\d+$/.test(id) ? parseInt(id) : id;
   const idx = owned.indexOf(id);
@@ -246,7 +250,7 @@ function sellTile(id) {
   delete tileData[id];
   saveTileData();
 
-  addToCodex(`Sold ${name} for ${value} Cr (paid ${paid}, ${gain >= 0 ? '+' : ''}${gain}). Traded on E2Verse market.`);
+  addToLedger(`Sold ${name} for ${value} Cr (paid ${paid}, ${gain >= 0 ? '+' : ''}${gain}). Traded on E2Verse market.`);
   updateUI();
   renderEstate();
   alert(`💱 Sold ${name} for ${value} Cr.\nRealized ${gain >= 0 ? '+' : ''}${gain} Cr vs your ${paid} Cr entry.`);
@@ -260,27 +264,30 @@ function showLive() {
   showView('live-view');
   const liveDiv = document.getElementById('live-view');
   if (owned.length > 0) {
-    liveDiv.innerHTML = `<h2>p9 Live in Metaverse</h2><p>Anchor live to your tile. p10 stable entry + surprise boosts permanent tile aura.</p>
-    <button onclick="igniteTileRitual(${owned[0]}, 'OwnedTile')">🔥 Ignite Live Ritual on Owned Tile (p9+p10)</button>`;
+    const name = (tileData[owned[0]] && tileData[owned[0]].name) || 'your tile';
+    liveDiv.innerHTML = `<h2>Live on Your Land</h2><p>Host a live tour anchored to your tile. A live session permanently boosts that tile's aura.</p>
+    <button onclick="hostLiveTour(${owned[0]}, '${(name+'').replace(/'/g,'')}')">🔴 Host Live Tour on ${name}</button>`;
+  } else {
+    liveDiv.innerHTML = `<h2>Live on Your Land</h2><p>Live tours of owned lands. Buy or claim a tile first, then host a tour from here.</p>`;
   }
 }
 
-function showNotebook() {
-  showView('notebook-view');
-  const list = document.getElementById('codex');
-  list.innerHTML = codex.length ? codex.map(c => `<div>${c}</div>`).join('') : '<p>No entries. Claim with voice.</p>';
-  reobserveCodex(); // ALWAYS LEARNING: re-observe triggers tile value mutation
+function showLedger() {
+  showView('ledger-view');
+  const list = document.getElementById('ledger');
+  list.innerHTML = ledger.length ? ledger.map(c => `<div>${c}</div>`).join('') : '<p>No activity yet. Buy or claim a tile to start.</p>';
+  reobserveLand(); // background value drift re-runs when you open the ledger
 }
 
-function addToCodex(text) {
-  codex.unshift(text);
-  if (codex.length > 10) codex.pop();
-  localStorage.setItem('p11_codex', JSON.stringify(codex));
+function addToLedger(text) {
+  ledger.unshift(text);
+  if (ledger.length > 10) ledger.pop();
+  localStorage.setItem('p11_ledger', JSON.stringify(ledger));
 }
 
 function updateUI() {
   const bal = document.getElementById('balance');
-  if (bal) bal.textContent = `${balance} $EROS · ${credits} Credits`;
+  if (bal) bal.textContent = `${gems} Gems · ${credits} Credits`;
   const hold = document.getElementById('holdings');
   if (hold) {
     const n = owned.length;
@@ -298,58 +305,58 @@ function saveTileData() {
   localStorage.setItem('p11_tileData', JSON.stringify(tileData));
 }
 
-// BIRTH 1: ALWAYS LEARNING Codex Mutation — p6 surprise + 창발 pain (ache) mutates owned tile value/vitality
-function mutateTileFromCodex(tileId, surprise, ache = 0.3) {
+// Development pulse: voice energy + activity grows an owned tile's value/vitality/aura.
+function mutateTile(tileId, surprise, energy = 0.3) {
   if (!tileData[tileId]) tileData[tileId] = { vitality: 1.0, builds: [], aura: 0, name: 'Unknown' };
-  const boost = surprise * (1 + ache * 0.9); // p6 Ache-Breath + p1 variable DNA
+  const boost = surprise * (1 + energy * 0.9);
   tileData[tileId].vitality = (tileData[tileId].vitality || 1) + boost;
   tileData[tileId].aura = (tileData[tileId].aura || 0) + surprise * 0.5;
   saveTileData();
   return boost;
 }
 
-function reobserveCodex() {
+function reobserveLand() {
   Object.keys(tileData).forEach(id => {
     const t = tileData[id];
     if (t.vitality > 1.2) {
-      const drift = (Math.random() - 0.45) * 0.07; // 창발 self-mutation (no central)
+      const drift = (Math.random() - 0.45) * 0.07; // small market drift
       t.vitality *= (1 + drift);
       if (t.vitality < 0.6) t.vitality = 0.6;
     }
   });
   saveTileData();
-  // Reflect autonomous value drift live if the user is watching their holdings.
+  // Reflect market drift live if the user is watching their holdings.
   updateUI();
   const estate = document.getElementById('estate-view');
   if (estate && estate.style.display !== 'none') renderEstate();
 }
 
-// BIRTH 2: p5 Magic Builds — voice surprise casts emergent structures (p5 spell + p6 lung)
-function castMagicOnTile(tileId, name) {
+// Develop: build a structure on an owned tile, raising its value.
+function developTile(tileId, name) {
   if (!owned.includes(parseInt(tileId))) {
-    alert('Own tile first');
+    alert('Buy or claim this tile first.');
     return;
   }
-  const surprise = (window.getP6LungSurprise && window.getP6LungSurprise()) || (0.4 + Math.random()*0.5);
-  const ache = 0.2 + Math.random() * 0.6; // 창발 pain fuels stronger spell
-  const power = surprise * (1.1 + ache);
+  const surprise = (window.getVoiceSurprise && window.getVoiceSurprise()) || (0.4 + Math.random()*0.5);
+  const energy = 0.2 + Math.random() * 0.6;
+  const power = surprise * (1.1 + energy);
 
   if (!tileData[tileId]) tileData[tileId] = { vitality: 1, builds: [], aura: 0, name };
-  const type = power > 0.75 ? 'Breath Spire' : (power > 0.45 ? 'Ache Obelisk' : 'Spore Bloom');
+  const type = power > 0.75 ? 'Tower' : (power > 0.45 ? 'Monument' : 'Garden');
   tileData[tileId].builds.push({type, power: power.toFixed(2), at: Date.now()});
   tileData[tileId].vitality += power * 0.55;
   saveTileData();
 
-  addToCodex(`p5 Magic: ${type} on ${name} — value now ${tileMarketValue(tileId).toFixed(0)} Cr (power ${power.toFixed(2)})`);
+  addToLedger(`Built ${type} on ${name} — value now ${tileMarketValue(tileId).toFixed(0)} Cr (power ${power.toFixed(2)})`);
   updateUI();
-  alert(`✨ ${type} emerged! Vitality +${(power*0.55).toFixed(2)}.\nTile value now ${tileMarketValue(tileId).toFixed(0)} Cr.`);
+  alert(`✨ ${type} built! Vitality +${(power*0.55).toFixed(2)}.\nTile value now ${tileMarketValue(tileId).toFixed(0)} Cr.`);
 }
 
-// BIRTH 3: p9/p10 Tile Ritual — live anchored to tile + stable credit entry + FOMO aura boost
-function igniteTileRitual(tileId, name) {
-  const surprise = (window.getP6LungSurprise && window.getP6LungSurprise()) || 0.5;
+// Live tour: host a live session anchored to a tile. Costs credits, boosts aura.
+function hostLiveTour(tileId, name) {
+  const surprise = (window.getVoiceSurprise && window.getVoiceSurprise()) || 0.5;
   const cost = Math.floor(7 + surprise * 14);
-  if (credits < cost) { alert('p10 credits low. FOMO soon.'); return; }
+  if (credits < cost) { alert(`Not enough Credits — a live tour costs ${cost} Cr.`); return; }
   credits -= cost;
   updateUI();
 
@@ -359,22 +366,24 @@ function igniteTileRitual(tileId, name) {
   tileData[tileId].vitality += boost * 0.4;
   saveTileData();
 
-  addToCodex(`p9 Ritual on ${name} • p10 paid ${cost} Cr • aura+${boost.toFixed(2)} • value ${tileMarketValue(tileId).toFixed(0)} Cr`);
+  addToLedger(`Live tour on ${name} • paid ${cost} Cr • aura +${boost.toFixed(2)} • value ${tileMarketValue(tileId).toFixed(0)} Cr`);
   updateUI();
-  alert(`📡 Ritual live on ${name}! Aura +${boost.toFixed(2)}.\nTile value now ${tileMarketValue(tileId).toFixed(0)} Cr.`);
+  alert(`🔴 Live tour on ${name}! Aura +${boost.toFixed(2)}.\nTile value now ${tileMarketValue(tileId).toFixed(0)} Cr.`);
 }
 
-function showMagic() {
-  showView('magic-view');
+function showDevelop() {
+  showView('develop-view');
 }
 
-function demoCastMagic() {
-  if (owned.length === 0) { alert('Claim a tile with voice first'); return; }
+function demoDevelop() {
+  if (owned.length === 0) { alert('Buy or claim a tile first.'); return; }
   const id = owned[0];
-  castMagicOnTile(id, 'DemoTile');
+  const name = (tileData[id] && tileData[id].name) || `Tile ${id}`;
+  developTile(id, name);
+  showEstate();
 }
 
-function initP11() {
+function initApp() {
   updateUI();
   showView('map-view');
   setTimeout(() => {
@@ -384,32 +393,8 @@ function initP11() {
     }
   }, 100);
 
-  // p6 cross ready
-  if (window.getP6LungSurprise) console.log('[p11] p6 Lung Surprise Eye connected');
-
-  // ALWAYS LEARNING loop: Codex mutates tile value autonomously
-  setInterval(reobserveCodex, 42000);
-
-  console.log('[p11] 3 Emergent Births: 1.Codex Mutation 2.p5 Magic Builds 3.p9/p10 Tile Rituals. Legion one.');
+  // Background market drift updates tile values over time.
+  setInterval(reobserveLand, 42000);
 }
 
-// === NIOBE VIRAL CROSS: p20/21 Fate + p18 Meme Clip + p15 Glow + p16 → p11 metaverse aura/claim boost
-function consumeCrossViralityToMetaverse() {
-  let auraBoost = 0.1;
-  try {
-    const f = JSON.parse(localStorage.getItem('p20_fate_to_p11')||localStorage.getItem('p21_fate_to_p11')||'null');
-    if (f) auraBoost += (f.relicPower||f.aura? 0.18:0.12);
-    const clip = JSON.parse(localStorage.getItem('p18_clip_to_p11')||'null'); if(clip) auraBoost += clip.surprise*0.5 || 0.15;
-    const glow = JSON.parse(localStorage.getItem('p15_voice_to_p11')||'null'); if(glow) auraBoost += 0.14;
-    const ad = JSON.parse(localStorage.getItem('p16_ad_to_p11')||'null'); if(ad) auraBoost += 0.1;
-  } catch(e){}
-  return auraBoost;
-}
-
-// Hook into claim (if owned tiles)
-const _oldClaim = window.claimTile || function(){};
-window.claimTile = function(...a) { const b = consumeCrossViralityToMetaverse(); const r=_oldClaim.apply(this,a); if(r && typeof r==='object') r.vitality=(r.vitality||1)+b; return r; };
-
-console.log('[p11] Cross virality consumer active (Destiny Duo + Meme UGC + Glow + Ad). Legion one.');
-
-window.onload = initP11;
+window.onload = initApp;

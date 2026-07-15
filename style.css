@@ -1,4 +1,4 @@
-/* p11 E2Verse — SENSE pass: 유창성·절제·일관 + 금(gold) 액센트 1스푼 */
+/* E2Verse — restrained gold accent, 8px grid, one hero (the map) */
 :root {
   /* 60/30/10 — bg 60%, card/surface 30%, gold accent 10% */
   --bg: #0a0806;
@@ -26,7 +26,7 @@ body {
 }
 .container { max-width: 900px; margin: 0 auto; padding: var(--s3) var(--s2) var(--s4); }
 
-/* ---- header: 주인공 = 지도. 헤더는 절제된 안내 ---- */
+/* ---- header: hero = the map; header stays quiet ---- */
 header { text-align: center; margin-bottom: var(--s3); }
 .disclaimer {
   font-size: 10px; letter-spacing: .04em; text-transform: uppercase;
@@ -40,27 +40,29 @@ h1 {
 }
 header > p { color: var(--text-dim); margin: 0 0 var(--s2); font-size: 14px; }
 
-/* ---- wallet chip: 정직한 금액, 절제된 위계 ---- */
+/* ---- wallet chip: honest balances, quiet hierarchy ---- */
 .wallet { display: flex; gap: var(--s1); justify-content: center; align-items: center; margin-bottom: var(--s3); }
 .wallet button {
   background: var(--gold); color: #1a1611; border: none; font-weight: 600;
 }
 .wallet button:hover { background: #d8b880; }
+.wallet button:disabled { background: var(--surface-2); color: var(--text-dim); cursor: default; }
 #balance {
   font-family: ui-monospace, "SF Mono", monospace; font-size: 12px;
   background: var(--surface); border: 1px solid var(--line);
   padding: 6px 12px; border-radius: 999px; color: var(--text-dim);
   white-space: nowrap;
 }
+#balance.linked { color: var(--gold); border-color: var(--gold-dim); }
 
-/* ---- holdings: 정직한 소유 상태(소유감 endowment, 코드값 그대로) ---- */
+/* ---- holdings: honest ownership state (value straight from code) ---- */
 .holdings {
   text-align: center; font-size: 12px; color: var(--text-dim);
   letter-spacing: .06em; margin-bottom: var(--s3); transition: color .2s var(--ease);
 }
 .holdings.has-tiles { color: var(--gold); }
 
-/* ---- nav: 일관 시그니처 + 명확한 active ---- */
+/* ---- nav: consistent signature + clear active state ---- */
 nav { display: flex; gap: var(--s1); justify-content: center; flex-wrap: wrap; margin-bottom: var(--s3); }
 button {
   background: var(--surface); color: var(--text); cursor: pointer;
@@ -72,11 +74,11 @@ button:hover { border-color: var(--gold-dim); }
 button:active { transform: translateY(1px); }
 nav button.active { border-color: var(--gold); color: var(--gold); background: var(--surface-2); }
 
-/* ---- views: 뷰 전환에 부드러운 등장 ---- */
+/* ---- views: soft entrance on view switch ---- */
 [id$="-view"] { animation: rise .32s var(--ease) both; }
 @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
-/* map = 주인공 */
+/* map = the hero */
 #map {
   border-radius: var(--radius); overflow: hidden;
   border: 1px solid var(--line);
@@ -88,20 +90,19 @@ nav button.active { border-color: var(--gold); color: var(--gold); background: v
 h2 { color: var(--text); font-size: 20px; font-weight: 600; margin: 0 0 var(--s1); letter-spacing: -.01em; }
 
 /* content surfaces */
-#voice-view, #live-view, #notebook-view, #magic-view { }
-#voice-status, #magic-hint {
+#voice-status, #develop-hint {
   margin-top: var(--s2); padding: var(--s2); font-size: 13px; color: var(--text-dim);
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
 }
 
-/* codex: 줄마다 카드, 최신 강조 */
-#codex { display: flex; flex-direction: column; gap: var(--s1); margin-top: var(--s2); }
-#codex > div {
+/* ledger: one card per line, newest highlighted */
+#ledger { display: flex; flex-direction: column; gap: var(--s1); margin-top: var(--s2); }
+#ledger > div {
   background: var(--surface); border: 1px solid var(--line); border-left: 2px solid var(--gold-dim);
   padding: 10px 12px; border-radius: 6px; font-size: 13px; color: var(--text);
 }
-#codex > div:first-child { border-left-color: var(--gold); }
-#codex p { color: var(--text-dim); font-size: 13px; }
+#ledger > div:first-child { border-left-color: var(--gold); }
+#ledger p { color: var(--text-dim); font-size: 13px; }
 
 /* ---- My Land (portfolio + trading) ---- */
 .estate-summary {

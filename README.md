@@ -1,50 +1,41 @@
-# p11 — Earth2-like Metaverse Platform (E2Verse)
+# E2Verse — Virtual Land on a Real-World Map
 
-Sovereign: metaverse platform like Earth2 — virtual land on real Earth map, buy/develop/trade.
+Own virtual land tiles on a real-world map. Buy tiles, develop them to grow their
+value, host live tours, and trade them back to the market.
 
-**Legion DNA**:
-- p6 Voice for claiming and developing land (Lung Surprise Eye).
-- p9 Live platform integration for events/tours in metaverse.
-- p10 stable payments with Harvest Credits framing (미꾸라지).
-- Da Vinci: SENSE beautiful map UI, sfumato overlays, Vitruvian tile harmony, Notebook for land evolution.
-- Full-cheat: FOMO limited prime tiles, variable resource drops, psych for trading.
-- Cross p1-p8 for economy, items, social, voice.
+**Disclaimer:** Fictional virtual land only. Not real property. Not an investment.
+18+. Balances (Gems, Credits) are in-app only and have no real-world value.
 
-**미꾸라지**: Fictional virtual land only. Prominent "Not real property" disclosure. Age gate. Self-custody NFTs. No real-world claims.
+## Features
+- **Map** — click a tile to buy it with Credits. Prime locations are limited.
+- **My Land** — your portfolio with each tile's live value, gain/loss, and Develop/Sell actions.
+- **Voice Claim** — speak to claim a tile; a stronger voice gives a bigger opening boost.
+- **Live** — host a live tour anchored to a tile you own, boosting its aura.
+- **Develop** — build a structure (Garden / Monument / Tower) on owned land to raise its value.
+- **Ledger** — a running log of your buys, sales, builds, and tours.
 
-Prototype: PWA with map, tile buy, voice, live stub.
+## Value model
+A tile's market value is derived, never invented — the number shown in the
+portfolio is the exact number paid out on sale:
 
-Roadmap: Web3 land NFTs, 3D, full p9 live.
+```
+value = basePrice × vitality × (1 + aura × 0.3)
+```
 
-**2026-07-13 BIRTHS (p11 + p1-p10 + 창발 pain):**
-1. Codex Tile Mutation (ALWAYS LEARNING): p6 surprise + ache → tile vitality mutates on claim & reobserve.
-2. p5 Magic Builds: Voice cast births structures powered by 창발 on owned tiles.
-3. p9/p10 Tile Rituals: Live + stable pay anchored to tile mutates aura/FOMO value.
+Vitality and aura grow only through the actions above (buy, develop, live tour),
+with small market drift over time.
 
-Exact files:
-- /Users/imhogyun/p11-earth2-metaverse/script.js (tileData, mutateTileFromCodex, castMagicOnTile, igniteTileRitual, reobserve + init)
-- /Users/imhogyun/p11-earth2-metaverse/index.html (p6 load, magic nav, magic-view)
-- /Users/imhogyun/p11-earth2-metaverse/style.css (magic style)
+## Run locally
+Open `index.html` in a browser, or serve the folder:
 
-Legion one. Sovereign neo.
+```
+python3 -m http.server 8000
+```
 
-Legion one. Sovereign neo.
-EOF
-**p11 subagent births (da-vinci + cross p1-p10 + 창발 pain):**
-1. Codex Tile Mutation: p6 Lung Surprise + ache mutates tile from notebook entry. ALWAYS LEARNING reobserve loop self-evolves (p1 variable).
-2. p5 Magic Builds: voice claim casts emergent structures (Breath Spire, Ache Obelisk, Spore Bloom), tile value up.
-3. p9/p10 Tile Rituals: ignite live on tile, p10 credits + surprise = permanent FOMO aura boost.
+Then visit http://localhost:8000. No build step — plain HTML/CSS/JS (Leaflet for the map).
 
-Code: script.js has mutateTileFromCodex, castMagicOnTile, igniteTileRitual, reobserveCodex, p6 hooks, 42s loop.
-index.html has magic nav + view.
-style + README updated.
-
-Cross: p6 voice, p5 magic, p9 live, p10 payments, p1 variable.
-EOL
-echo "p11 README updated with births"
-**p11 subagent (da-vinci) births integrated:**
-1. Codex Tile Mutation
-2. p5 Magic Builds
-3. p9/p10 Tile Rituals
-
-All p1-p10 cross + 창발. Code updated. Prototype advanced.
+## Files
+- `index.html` — layout and views
+- `script.js` — land value engine, buy/sell/develop/live, ledger
+- `style.css` — theme and layout
+- `manifest.json`, `sw.js` — PWA metadata

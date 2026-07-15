@@ -1,23 +1,23 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>E2Verse • Metaverse</title>
-  <meta name="description" content="어스2 같은 메타버스. 실제 지구 위 가상 토지. p6 voice. p10 credits. Legion p11. Fictional.">
+  <title>E2Verse • Virtual Land</title>
+  <meta name="description" content="Own virtual land on a real-world map. Buy, develop, and trade tiles by voice or on the map. Fictional — 18+, not real property.">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="container">
     <header>
-      <div class="disclaimer">FICTIONAL VIRTUAL LAND ONLY • 18+ • NO REAL PROPERTY • p11 × p6 Voice × p9 Live × p10 Credits</div>
+      <div class="disclaimer">FICTIONAL VIRTUAL LAND ONLY • 18+ • NOT REAL PROPERTY • NOT AN INVESTMENT</div>
       <h1>E2Verse</h1>
-      <p>Real Earth. Virtual Ownership. Voice & Live.</p>
+      <p>Real-world map. Virtual ownership. Buy, develop, and trade.</p>
 
       <div class="wallet">
         <button onclick="connectWallet()">Connect Wallet</button>
-        <span id="balance">1420 $EROS · 850 Credits</span>
+        <span id="balance">1420 Gems · 850 Credits</span>
       </div>
       <div id="holdings" class="holdings">◇ 0 tiles owned</div>
 
@@ -26,14 +26,14 @@
         <button onclick="showEstate()">My Land</button>
         <button onclick="showVoice()">Voice Claim</button>
         <button onclick="showLive()">Live</button>
-        <button onclick="showMagic()">Magic</button>
-        <button onclick="showNotebook()">Codex</button>
+        <button onclick="showDevelop()">Develop</button>
+        <button onclick="showLedger()">Ledger</button>
       </nav>
     </header>
 
     <div id="map-view">
       <div id="map" style="height:400px"></div>
-      <p id="map-info">Click tiles to buy. FOMO prime locations. Use Harvest Credits or $EROS.</p>
+      <p id="map-info">Click a tile to buy it with Credits. Prime locations are limited.</p>
     </div>
 
     <div id="estate-view" style="display:none">
@@ -44,33 +44,31 @@
     </div>
 
     <div id="voice-view" style="display:none">
-      <h2>Voice Claim Land (p6 Lung)</h2>
+      <h2>Voice Claim Land</h2>
+      <p>Speak to claim a tile — a stronger voice gives a bigger opening boost.</p>
       <button onclick="claimWithVoice()">🎙 Speak to Claim Tile</button>
       <div id="voice-status"></div>
     </div>
 
     <div id="live-view" style="display:none">
-      <h2>p9 Live in Metaverse</h2>
-      <div>Live tours of owned lands. Pay with credits.</div>
-      <button>Join Live Tour</button>
+      <h2>Live on Your Land</h2>
+      <p>Live tours of owned lands. Buy or claim a tile first, then host a tour from here.</p>
     </div>
 
-    <div id="notebook-view" style="display:none">
-      <h2>Codex (ALWAYS LEARNING)</h2>
-      <div id="codex"></div>
+    <div id="ledger-view" style="display:none">
+      <h2>Activity Ledger</h2>
+      <div id="ledger"></div>
     </div>
 
-    <!-- BIRTH: p5 Magic Builds section -->
-    <div id="magic-view" style="display:none">
-      <h2>p5 Magic Builds on Tiles</h2>
-      <p>Voice + surprise = cast structures. High 창발 pain = stronger emergent builds.</p>
-      <div id="magic-hint">Own a tile first. Then cast.</div>
-      <button onclick="demoCastMagic()">Demo Cast on Random Owned</button>
+    <div id="develop-view" style="display:none">
+      <h2>Develop Your Tiles</h2>
+      <p>Build a structure on land you own to raise its value. A stronger voice builds a bigger structure.</p>
+      <div id="develop-hint">Own a tile first, then develop it here or from My Land.</div>
+      <button onclick="demoDevelop()">Develop My First Tile</button>
     </div>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="../p6-airpods-artistic/lung-surprise-eye.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
