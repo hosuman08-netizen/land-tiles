@@ -141,7 +141,13 @@ function addToCodex(text) {
 
 function updateUI() {
   const bal = document.getElementById('balance');
-  if (bal) bal.textContent = `${balance} $EROS / ${credits} Credits`;
+  if (bal) bal.textContent = `${balance} $EROS · ${credits} Credits`;
+  const hold = document.getElementById('holdings');
+  if (hold) {
+    const n = owned.length;
+    hold.textContent = n === 0 ? '◇ 0 tiles owned' : `◆ ${n} tile${n > 1 ? 's' : ''} owned`;
+    hold.classList.toggle('has-tiles', n > 0);
+  }
 }
 
 function saveTileData() {

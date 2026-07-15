@@ -1,38 +1,110 @@
-/* p11 E2Verse - Da Vinci SENSE + p6 Voice + Web3 */
+/* p11 E2Verse — SENSE pass: 유창성·절제·일관 + 금(gold) 액센트 1스푼 */
 :root {
+  /* 60/30/10 — bg 60%, card/surface 30%, gold accent 10% */
   --bg: #0a0806;
+  --surface: #12100d;
+  --surface-2: #1a1611;
+  --line: #2a231a;
   --gold: #c5a46e;
-  --card: #12100d;
+  --gold-dim: #8b6f47;
   --text: #f5f1e6;
-  --dim: #8b6f47;
+  --text-dim: #9c907c;
+  /* 8px grid spacing tokens */
+  --s1: 8px; --s2: 16px; --s3: 24px; --s4: 32px;
+  --radius: 8px;
+  --ease: cubic-bezier(.2, .7, .3, 1);
 }
 
-body { background: var(--bg); color: var(--text); font-family: system-ui; margin:0; padding:0; }
-.container { max-width: 900px; margin: 0 auto; padding: 16px; }
+* { box-sizing: border-box; }
+body {
+  background: radial-gradient(1200px 600px at 50% -10%, #14110c 0%, var(--bg) 55%);
+  color: var(--text);
+  font-family: system-ui, -apple-system, sans-serif;
+  margin: 0;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+.container { max-width: 900px; margin: 0 auto; padding: var(--s3) var(--s2) var(--s4); }
 
-header { text-align: center; margin-bottom: 16px; }
-h1 { font-size: 32px; color: var(--gold); }
-.tagline { color: var(--dim); }
-.disclaimer { font-size: 9px; opacity: 0.5; }
+/* ---- header: 주인공 = 지도. 헤더는 절제된 안내 ---- */
+header { text-align: center; margin-bottom: var(--s3); }
+.disclaimer {
+  font-size: 10px; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--text-dim); opacity: .55;
+  border: 1px solid var(--line); border-radius: 999px;
+  display: inline-block; padding: 4px 12px; margin-bottom: var(--s2);
+}
+h1 {
+  font-size: 40px; line-height: 1.05; margin: 0 0 4px;
+  color: var(--gold); font-weight: 700; letter-spacing: -.02em;
+}
+header > p { color: var(--text-dim); margin: 0 0 var(--s2); font-size: 14px; }
 
-.wallet { display: flex; gap: 8px; justify-content: center; align-items: center; margin: 12px 0; }
-#balance { font-family: monospace; font-size: 12px; background: var(--card); padding: 4px 8px; border-radius: 4px; color: var(--dim); }
+/* ---- wallet chip: 정직한 금액, 절제된 위계 ---- */
+.wallet { display: flex; gap: var(--s1); justify-content: center; align-items: center; margin-bottom: var(--s3); }
+.wallet button {
+  background: var(--gold); color: #1a1611; border: none; font-weight: 600;
+}
+.wallet button:hover { background: #d8b880; }
+#balance {
+  font-family: ui-monospace, "SF Mono", monospace; font-size: 12px;
+  background: var(--surface); border: 1px solid var(--line);
+  padding: 6px 12px; border-radius: 999px; color: var(--text-dim);
+  white-space: nowrap;
+}
 
-nav { display: flex; gap: 6px; justify-content: center; margin-bottom: 16px; flex-wrap: wrap; }
-button { background: var(--card); color: var(--gold); border: 1px solid #3a3124; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: border-color .15s ease, background .15s ease; }
-button:hover { border-color: var(--gold); }
-nav button.active { border-color: var(--gold); background: #1c1710; }
+/* ---- holdings: 정직한 소유 상태(소유감 endowment, 코드값 그대로) ---- */
+.holdings {
+  text-align: center; font-size: 12px; color: var(--text-dim);
+  letter-spacing: .06em; margin-bottom: var(--s3); transition: color .2s var(--ease);
+}
+.holdings.has-tiles { color: var(--gold); }
 
-.section { margin-bottom: 24px; }
-.hidden { display: none; }
+/* ---- nav: 일관 시그니처 + 명확한 active ---- */
+nav { display: flex; gap: var(--s1); justify-content: center; flex-wrap: wrap; margin-bottom: var(--s3); }
+button {
+  background: var(--surface); color: var(--text); cursor: pointer;
+  border: 1px solid var(--line); padding: 8px 14px; border-radius: var(--radius);
+  font-size: 13px; font-weight: 500;
+  transition: border-color .18s var(--ease), background .18s var(--ease), color .18s var(--ease), transform .08s var(--ease);
+}
+button:hover { border-color: var(--gold-dim); }
+button:active { transform: translateY(1px); }
+nav button.active { border-color: var(--gold); color: var(--gold); background: var(--surface-2); }
 
+/* ---- views: 뷰 전환에 부드러운 등장 ---- */
+[id$="-view"] { animation: rise .32s var(--ease) both; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* map = 주인공 */
+#map {
+  border-radius: var(--radius); overflow: hidden;
+  border: 1px solid var(--line);
+  box-shadow: 0 12px 40px -12px rgba(0,0,0,.6);
+}
+#map-info, .map-info { text-align: center; margin-top: var(--s2); font-size: 12px; color: var(--text-dim); }
+
+/* section headings */
+h2 { color: var(--text); font-size: 20px; font-weight: 600; margin: 0 0 var(--s1); letter-spacing: -.01em; }
+
+/* content surfaces */
+#voice-view, #live-view, #notebook-view, #magic-view { }
+#voice-status, #magic-hint {
+  margin-top: var(--s2); padding: var(--s2); font-size: 13px; color: var(--text-dim);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+}
+
+/* codex: 줄마다 카드, 최신 강조 */
+#codex { display: flex; flex-direction: column; gap: var(--s1); margin-top: var(--s2); }
+#codex > div {
+  background: var(--surface); border: 1px solid var(--line); border-left: 2px solid var(--gold-dim);
+  padding: 10px 12px; border-radius: 6px; font-size: 13px; color: var(--text);
+}
+#codex > div:first-child { border-left-color: var(--gold); }
+#codex p { color: var(--text-dim); font-size: 13px; }
+
+/* legacy helpers kept */
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
-.tile-card { background: var(--card); border: 1px solid #3a3124; padding: 8px; border-radius: 8px; text-align: center; }
+.tile-card { background: var(--surface); border: 1px solid var(--line); padding: var(--s1); border-radius: var(--radius); text-align: center; }
 .tile-card.owned { border-color: var(--gold); }
-
-.map-info { text-align: center; margin-top: 8px; font-size: 12px; color: var(--dim); }
-
-#voice-preview { margin: 12px 0; padding: 8px; background: var(--card); border-radius: 6px; }
-
-.live-item { background: var(--card); padding: 8px; border-radius: 6px; margin-bottom: 8px; }
-#magic-view { background: var(--card); padding: 12px; border-radius: 8px; margin-top: 12px; }
+.live-item { background: var(--surface); padding: var(--s1); border-radius: 6px; margin-bottom: var(--s1); }
