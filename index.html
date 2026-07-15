@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E2Verse • Metaverse</title>
+  <meta name="description" content="어스2 같은 메타버스. 실제 지구 위 가상 토지. p6 voice. p10 credits. Legion p11. Fictional.">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="disclaimer">FICTIONAL VIRTUAL LAND ONLY • 18+ • NO REAL PROPERTY • p11 × p6 Voice × p9 Live × p10 Credits</div>
+      <h1>E2Verse</h1>
+      <p>Real Earth. Virtual Ownership. Voice & Live.</p>
+
+      <div class="wallet">
+        <button onclick="connectWallet()">🔗 Wallet</button>
+        <span id="balance">1420 $EROS / 850 Harvest Credits</span>
+      </div>
+
+      <nav>
+        <button onclick="showMap()">🗺 Map</button>
+        <button onclick="showVoice()">🎙 p6 Voice Claim</button>
+        <button onclick="showLive()">📡 p9 Live</button>
+        <button onclick="showMagic()">✨ p5 Magic</button>
+        <button onclick="showNotebook()">📓 Codex</button>
+      </nav>
+    </header>
+
+    <div id="map-view">
+      <div id="map" style="height:400px"></div>
+      <p id="map-info">Click tiles to buy. FOMO prime locations. Use Harvest Credits or $EROS.</p>
+    </div>
+
+    <div id="voice-view" style="display:none">
+      <h2>Voice Claim Land (p6 Lung)</h2>
+      <button onclick="claimWithVoice()">🎙 Speak to Claim Tile</button>
+      <div id="voice-status"></div>
+    </div>
+
+    <div id="live-view" style="display:none">
+      <h2>p9 Live in Metaverse</h2>
+      <div>Live tours of owned lands. Pay with credits.</div>
+      <button>Join Live Tour</button>
+    </div>
+
+    <div id="notebook-view" style="display:none">
+      <h2>Codex (ALWAYS LEARNING)</h2>
+      <div id="codex"></div>
+    </div>
+
+    <!-- BIRTH: p5 Magic Builds section -->
+    <div id="magic-view" style="display:none">
+      <h2>p5 Magic Builds on Tiles</h2>
+      <p>Voice + surprise = cast structures. High 창발 pain = stronger emergent builds.</p>
+      <div id="magic-hint">Own a tile first. Then cast.</div>
+      <button onclick="demoCastMagic()">Demo Cast on Random Owned</button>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="../p6-airpods-artistic/lung-surprise-eye.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

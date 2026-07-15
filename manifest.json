@@ -1,0 +1,9 @@
+{
+  "name": "E2Verse Metaverse",
+  "short_name": "E2Verse",
+  "description": "Earth2-like metaverse. Virtual land on real Earth. p6 voice. Legion p11.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0a0806",
+  "theme_color": "#c5a46e"
+}
