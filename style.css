@@ -193,6 +193,54 @@ h4 { font-size: 12px; font-weight: 600; margin: 0 0 var(--s1); color: var(--text
 }
 .map-hint.show { opacity: 1; }
 
+/* ---- hub anchors (value gravity wells) ---------------------------------- */
+.hub-anchor { background: none; border: none; }
+.hub-anchor .hub-dot {
+  position: absolute; left: 0; top: 0; width: 11px; height: 11px;
+  transform: translate(-50%, -50%); border-radius: 50%;
+  background: var(--hc, #c5a46e);
+  box-shadow: 0 0 0 2px rgba(10,8,6,.92), 0 0 12px 1px var(--hc, #c5a46e);
+}
+.hub-anchor .hub-pulse {
+  position: absolute; left: 50%; top: 50%; width: 11px; height: 11px;
+  transform: translate(-50%, -50%); border-radius: 50%;
+  border: 1.5px solid var(--hc, #c5a46e);
+  animation: hubPulse 3.4s var(--ease) infinite;
+}
+@keyframes hubPulse {
+  0%   { opacity: .6; transform: translate(-50%, -50%) scale(1); }
+  70%  { opacity: 0;  transform: translate(-50%, -50%) scale(3.4); }
+  100% { opacity: 0;  transform: translate(-50%, -50%) scale(3.4); }
+}
+@media (prefers-reduced-motion: reduce) { .hub-anchor .hub-pulse { animation: none; } }
+.hub-anchor .hub-lbl {
+  position: absolute; left: 9px; top: 0; transform: translateY(-50%);
+  white-space: nowrap; font-size: 10.5px; color: var(--text);
+  background: rgba(10,8,6,.74); border: 1px solid var(--line-2);
+  padding: 2px 7px; border-radius: 999px; line-height: 1.55;
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+}
+.hub-anchor .hub-lbl b { font-weight: 600; margin-left: 6px; }
+.hub-anchor .hub-lbl i { font-style: normal; font-size: 9px; margin-left: 1px; }
+.hub-anchor .hub-lbl i.up { color: var(--up); }
+.hub-anchor .hub-lbl i.down { color: var(--down); }
+.hub-anchor .hub-lbl i.flat { color: var(--text-faint); }
+
+/* ---- world minimap locator ---------------------------------------------- */
+.minimap {
+  position: absolute; left: 10px; bottom: 10px; z-index: 500;
+  width: 168px; height: 84px; border-radius: 6px; overflow: hidden;
+  border: 1px solid var(--line-2); box-shadow: 0 8px 24px -8px rgba(0,0,0,.72);
+  cursor: crosshair; opacity: .88; transition: opacity .18s var(--ease);
+}
+.minimap:hover { opacity: 1; }
+.minimap canvas { width: 100%; height: 100%; display: block; }
+.minimap-cap {
+  position: absolute; left: 6px; top: 4px; font-size: 8.5px; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--text-faint); pointer-events: none;
+}
+@media (max-width: 620px) { .minimap { width: 132px; height: 66px; } }
+
 .scan {
   position: absolute; top: 10px; right: 10px; z-index: 500;
   background: rgba(10,8,6,.8); border: 1px solid var(--line-2); border-radius: 999px;

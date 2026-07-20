@@ -447,6 +447,42 @@ function collectionFactor(id) {
   return st.active ? st.active.yieldMult : 1;
 }
 
+/* ---------------------------------------------------------------------------
+   REGIONAL DEMAND — a deterministic field over the ten value hubs.
+   The valuation already prices *distance* to a hub (locationFactor). Demand
+   adds the dimension a real land market has: *time*. Each hub runs hot or cool
+   on a slow, fully-seeded drift, lifted by global scarcity and by your own
+   footprint in its region. It is discovery + display only — it never feeds NLV,
+   so appraisals stay anchored in fundamentals and the two never quietly entangle.
+------------------------------------------------------------------------------ */
+const DEMAND_BANDS = [
+  { max: 0.40, key: 'cool',    label: 'Cool',    color: '#6f8196' },
+  { max: 0.60, key: 'steady',  label: 'Steady',  color: '#9a8f6a' },
+  { max: 0.80, key: 'warm',    label: 'Warm',    color: '#c5a46e' },
+  { max: 1.01, key: 'surging', label: 'Surging', color: '#e8cf94' }
+];
+function demandBand(temp) {
+  for (const b of DEMAND_BANDS) if (temp <= b.max) return b;
+  return DEMAND_BANDS[DEMAND_BANDS.length - 1];
+}
+// The raw field at a hub on a given day — pure function of (hub, day, holdings).
+function demandTemp(hub, day) {
+  const ph = rand1('hubphase|' + hub.id) * Math.PI * 2;
+  // Two out-of-phase slow waves make a believable multi-day cycle, fully seeded.
+  const drift = 0.5 + 0.30 * Math.sin(day / 6 + ph) + 0.14 * Math.sin(day / 2.3 + ph * 1.7);
+  const weightTilt = clamp((hub.weight - 0.90) / 0.25, 0, 1);   // prime hubs run hotter
+  const scar = claimedSupply(day) / SUPPLY_CAP;                 // the whole market tightening
+  const mine = owned.length ? regionHoldings(hub.id).length : 0;
+  const ownLift = Math.min(0.16, mine * 0.05);                  // your own region heats up
+  return { temp: clamp(0.14 + 0.30 * drift + 0.26 * weightTilt + 0.16 * scar + ownLift, 0, 1), mine: mine };
+}
+function hubDemand(hub, d) {
+  const day = d === undefined ? simDay() : d;
+  const now = demandTemp(hub, day);
+  const prev = demandTemp(hub, Math.max(GENESIS_DAY, day - 7)).temp;  // honest 7-day trend
+  return { temp: now.temp, band: demandBand(now.temp), delta: now.temp - prev, mine: now.mine };
+}
+
 // Value cache keyed by tile+day so portfolio loops stay cheap.
 const valueCache = new Map();
 let cachedDay = -1;
@@ -1406,6 +1442,8 @@ function relTime(ms) {
    ========================================================================= */
 let map = null;
 let cellLayer = null, ownedLayer = null, treasureLayer = null, ghost = null;
+let heatLayer = null, hubLayer = null;
+let miniCanvas = null;
 let selectedId = null;
 let redrawTimer = null;
 
@@ -1418,7 +1456,9 @@ const LAYERS = {
   listed: { on: true, color: '#6fbf8f', fill: 0.30, weight: 1.4, label: 'For sale' },
   leased: { on: true, color: '#9b8bd6', fill: 0.26, weight: 1.2, label: 'Leased' },
   held:   { on: true, color: '#6b7a8f', fill: 0.04, weight: 0.5, label: 'Held by agents' },
-  virgin: { on: true, color: '#a9834b', fill: 0.00, weight: 0.5, label: 'Never minted' }
+  virgin: { on: true, color: '#a9834b', fill: 0.00, weight: 0.5, label: 'Never minted' },
+  // A display-only field, never a cell state — drives the demand glow + hub anchors.
+  demand: { on: true, color: '#c5a46e', fill: 0.00, weight: 0, label: 'Demand field', field: true }
 };
 
 // The full display state of any cell — this is what the map colours by.
@@ -1460,9 +1500,12 @@ function initMap() {
     updateWhenZooming: false
   }).addTo(map);
 
+  // Draw order matters: heat sits under the cell grid, hub anchors ride on top.
+  heatLayer = L.layerGroup().addTo(map);
   cellLayer = L.layerGroup().addTo(map);
   ownedLayer = L.layerGroup().addTo(map);
   treasureLayer = L.layerGroup().addTo(map);
+  hubLayer = L.layerGroup().addTo(map);
 
   // ---- cooperative gestures -------------------------------------------------
   // On touch, a one-finger drag must scroll the PAGE, not the map. Two fingers
@@ -1509,7 +1552,10 @@ function initMap() {
   map.on('click', function (e) { selectTile(cellOf(e.latlng.lat, e.latlng.lng).id); });
   map.on('moveend zoomend', scheduleRedraw);
   map.on('moveend', checkTreasureProximity);
+  // The minimap's viewport box tracks the pan live; it is cheap enough for 'move'.
+  map.on('move zoom', drawMinimap);
 
+  buildMinimap();
   scheduleRedraw();
   checkTreasureProximity();
 }
@@ -1591,8 +1637,126 @@ function redrawMap() {
     if (cnt) cnt.textContent = 'Zoom to 5+ to see the market layer';
   }
 
+  drawHubsAndHeat();
   drawTreasures();
+  drawMinimap();
   if (selectedId) highlightSelected();
+}
+
+/* Regional demand field + hub anchors. Rendered at EVERY zoom so the world is
+   never a blank basemap: at world zoom you read where the market runs hot before
+   you commit to a region; zoomed in, the glow is the ambient value gradient the
+   valuation already prices. Ten hubs -> ~40 shapes, redrawn only on move/day. */
+function drawHubsAndHeat() {
+  if (!map || !heatLayer || !hubLayer) return;
+  heatLayer.clearLayers();
+  hubLayer.clearLayers();
+  const d = simDay();
+  const z = map.getZoom();
+  const showHeat = LAYERS.demand.on;
+  // Concentric soft rings tuned to the 320 km valuation decay scale.
+  const RINGS = [{ km: 300, op: 0.22 }, { km: 560, op: 0.12 }, { km: 880, op: 0.055 }];
+  HUBS.forEach(function (h) {
+    const dm = hubDemand(h, d);
+    if (showHeat) {
+      RINGS.forEach(function (r) {
+        L.circle([h.lat, h.lng], {
+          radius: r.km * 1000,
+          stroke: false,
+          fillColor: dm.band.color,
+          fillOpacity: r.op * (0.5 + dm.temp),   // a hotter hub glows denser
+          interactive: false
+        }).addTo(heatLayer);
+      });
+    }
+    const mk = L.marker([h.lat, h.lng], {
+      icon: L.divIcon({ className: 'hub-anchor', html: hubAnchorHtml(h, dm, z), iconSize: [0, 0], iconAnchor: [0, 0] }),
+      keyboard: false, riseOnHover: true, zIndexOffset: 650
+    });
+    mk.bindTooltip(h.name + ' · demand ' + dm.band.label + ' · ×' + h.weight.toFixed(2) + ' gravity',
+      { direction: 'top', offset: [0, -6] });
+    mk.on('click', function () { jumpToHub(h.id); });
+    mk.addTo(hubLayer);
+  });
+}
+
+function hubAnchorHtml(h, dm, z) {
+  const arrow = dm.delta > 0.02 ? '▲' : dm.delta < -0.02 ? '▼' : '·';
+  const acls = dm.delta > 0.02 ? 'up' : dm.delta < -0.02 ? 'down' : 'flat';
+  let lbl = '';
+  if (z >= 4) {
+    const band = z >= 5
+      ? '<b style="color:' + dm.band.color + '">' + dm.band.label +
+        ' <i class="' + acls + '">' + arrow + '</i></b>'
+      : '';
+    lbl = '<span class="hub-lbl">' + esc(h.name) + band + '</span>';
+  }
+  return '<span class="hub-dot" style="--hc:' + dm.band.color +
+    '"><span class="hub-pulse" style="--hc:' + dm.band.color + '"></span></span>' + lbl;
+}
+
+/* Minimap locator — a lightweight equirectangular overview drawn on a canvas.
+   Shows the ten hubs (coloured by demand), your holdings, and a live viewport
+   box; click to recentre. Standard orientation tool the deep-zoom map lacked. */
+function buildMinimap() {
+  const shell = document.querySelector('.map-shell');
+  if (!shell || miniCanvas) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'minimap';
+  wrap.title = 'World locator · click to jump';
+  const cv = document.createElement('canvas');
+  cv.width = 336; cv.height = 168;   // 2× backing store for crisp lines
+  wrap.appendChild(cv);
+  const cap = document.createElement('span');
+  cap.className = 'minimap-cap';
+  cap.textContent = 'World';
+  wrap.appendChild(cap);
+  shell.appendChild(wrap);
+  miniCanvas = cv;
+  wrap.addEventListener('click', function (e) {
+    if (!map) return;
+    const r = cv.getBoundingClientRect();
+    const lng = clamp((e.clientX - r.left) / r.width * 360 - 180, -179, 179);
+    const lat = clamp(90 - (e.clientY - r.top) / r.height * 180, -84, 84);
+    map.setView([lat, lng], map.getZoom(), { animate: true });
+  });
+  drawMinimap();
+}
+
+function drawMinimap() {
+  if (!miniCanvas || !map) return;
+  const cv = miniCanvas, ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  const px = function (lng, lat) { return [(lng + 180) / 360 * W, (90 - lat) / 180 * H]; };
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(13,11,8,.86)'; ctx.fillRect(0, 0, W, H);
+  // graticule
+  ctx.strokeStyle = 'rgba(58,49,37,.55)'; ctx.lineWidth = 1;
+  for (let lng = -120; lng <= 120; lng += 60) { const p = px(lng, 0); ctx.beginPath(); ctx.moveTo(p[0], 0); ctx.lineTo(p[0], H); ctx.stroke(); }
+  for (let lat = -60; lat <= 60; lat += 30) { const p = px(0, lat); ctx.beginPath(); ctx.moveTo(0, p[1]); ctx.lineTo(W, p[1]); ctx.stroke(); }
+  const d = simDay();
+  // hubs, coloured by live demand
+  HUBS.forEach(function (h) {
+    const dm = hubDemand(h, d);
+    const p = px(h.lng, h.lat);
+    ctx.beginPath(); ctx.arc(p[0], p[1], 3.2, 0, 6.2832);
+    ctx.fillStyle = dm.band.color; ctx.globalAlpha = 0.9; ctx.fill(); ctx.globalAlpha = 1;
+  });
+  // holdings
+  ctx.fillStyle = '#e8cf94';
+  owned.forEach(function (id) {
+    const m = cellMeta(id); if (!m) return;
+    const p = px(m.lng, m.lat);
+    ctx.fillRect(p[0] - 1.6, p[1] - 1.6, 3.2, 3.2);
+  });
+  // viewport box
+  const b = map.getBounds();
+  const a = px(b.getWest(), b.getNorth()), c = px(b.getEast(), b.getSouth());
+  let x0 = clamp(Math.min(a[0], c[0]), 0, W), x1 = clamp(Math.max(a[0], c[0]), 0, W);
+  let y0 = clamp(Math.min(a[1], c[1]), 0, H), y1 = clamp(Math.max(a[1], c[1]), 0, H);
+  const rw = Math.max(3, x1 - x0), rh = Math.max(3, y1 - y0);
+  ctx.fillStyle = 'rgba(197,164,110,.12)'; ctx.fillRect(x0, y0, rw, rh);
+  ctx.strokeStyle = '#e8cf94'; ctx.lineWidth = 2; ctx.strokeRect(x0, y0, rw, rh);
 }
 
 let selectRing = null;
@@ -2339,6 +2503,7 @@ function worldTick() {
   if (market.lastTick !== d) {
     market.lastTick = d;
     invalidateDerived();
+    if (map) scheduleRedraw();   // demand field + hub anchors drift with the sim-day
     if (owned.length) announce('Sim-day ' + d + '. Market index ' + marketIndex(d).toFixed(3) + '.');
   }
   saveAll();
