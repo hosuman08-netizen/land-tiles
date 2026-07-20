@@ -221,6 +221,7 @@ function buyTile(tile, rect) {
   const s = (window.getVoiceSurprise && window.getVoiceSurprise()) || 0.42;
   mutateTile(tile.id, s, 0.28);
   addToLedger(`Claimed ${tile.name} for ${cost} Cr. Value now ${tileMarketValue(tile.id).toFixed(0)} Cr.`);
+  if (window.legionTrack) window.legionTrack('activate');
   updateUI();
   alert(`Bought ${tile.name} for ${cost} Cr!\nLive value: ${tileMarketValue(tile.id).toFixed(0)} Cr. Develop it to grow value.`);
 }
