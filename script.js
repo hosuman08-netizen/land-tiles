@@ -131,6 +131,35 @@ function initMap() {
     }
   });
 
+  // Live survey preview: as the cursor moves, snap a ghost rect to the hovered
+  // cell and show its name + price, so land value is legible BEFORE you click.
+  let ghost = null;
+  const mapInfo = document.getElementById('map-info');
+  const defaultInfo = mapInfo && mapInfo.textContent;
+  const half = GRID / 2;
+  map.on('mousemove', e => {
+    const cell = cellOf(e.latlng.lat, e.latlng.lng);
+    const bounds = [[cell.lat - half, cell.lng - half], [cell.lat + half, cell.lng + half]];
+    if (!ghost) {
+      ghost = L.rectangle(bounds, { color: '#c5a46e', weight: 1, fill: false, dashArray: '4 4', interactive: false }).addTo(map);
+    } else {
+      ghost.setBounds(bounds);
+    }
+    if (mapInfo) {
+      if (tileRects[cell.id] && owned.includes(cell.id)) {
+        mapInfo.textContent = `${cellName(cell.lat, cell.lng)} — yours · value ${tileMarketValue(cell.id).toFixed(0)} Cr`;
+      } else if (tileRects[cell.id]) {
+        mapInfo.textContent = `${cellName(cell.lat, cell.lng)} — click to view`;
+      } else {
+        mapInfo.textContent = `${cellName(cell.lat, cell.lng)} · survey ${cellPrice(cell.lat, cell.lng)} Cr — click to claim`;
+      }
+    }
+  });
+  map.on('mouseout', () => {
+    if (ghost) { map.removeLayer(ghost); ghost = null; }
+    if (mapInfo && defaultInfo) mapInfo.textContent = defaultInfo;
+  });
+
   // Click ANYWHERE on the world → survey the land cell there and offer to claim it.
   map.on('click', e => {
     const cell = cellOf(e.latlng.lat, e.latlng.lng);
