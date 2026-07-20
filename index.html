@@ -4,92 +4,156 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>E2Verse — Own Virtual Land on a Real-World Map</title>
-  <meta name="description" content="Claim, develop, and trade virtual land tiles laid over a real-world map — by voice or by tapping the map. A fictional 18+ game. Not real property, not an investment.">
+  <meta name="description" content="Claim, develop, lease and trade virtual land blocks laid over a real-world map. Appraisals, an order book with escrowed offers, resource yield and collections. A fictional 18+ simulation. Not real property, not an investment.">
   <link rel="canonical" href="https://hosuman08-netizen.github.io/land-tiles/">
 
   <!-- Open Graph -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://hosuman08-netizen.github.io/land-tiles/">
   <meta property="og:title" content="E2Verse — Own Virtual Land on a Real-World Map">
-  <meta property="og:description" content="Claim, develop, and trade virtual land tiles laid over a real-world map — by voice or by tapping the map. A fictional 18+ game. Not real property, not an investment.">
+  <meta property="og:description" content="Claim, develop, lease and trade virtual land blocks on a real-world map. Appraisals, escrowed offers, yield and collections. A fictional 18+ simulation.">
   <meta property="og:site_name" content="E2Verse">
   <meta property="og:image" content="https://hosuman08-netizen.github.io/land-tiles/og-image.png">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="E2Verse — Own Virtual Land on a Real-World Map">
-  <meta name="twitter:description" content="Claim, develop, and trade virtual land tiles laid over a real-world map — by voice or by tapping the map. A fictional 18+ game.">
+  <meta name="twitter:description" content="Claim, develop, lease and trade virtual land blocks on a real-world map. A fictional 18+ simulation.">
   <meta name="twitter:image" content="https://hosuman08-netizen.github.io/land-tiles/og-image.png">
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <a class="skip" href="#main">Skip to content</a>
+  <div id="sr-status" role="status" aria-live="polite" class="sr-only"></div>
+
   <div class="container">
     <header>
-      <div class="disclaimer">FICTIONAL VIRTUAL LAND ONLY • 18+ • NOT REAL PROPERTY • NOT AN INVESTMENT</div>
-      <h1>E2Verse</h1>
-      <p>Real-world map. Virtual ownership. Buy, develop, and trade.</p>
+      <div class="disclaimer">Fictional virtual land · 18+ · not real property · not an investment · every counterparty is a simulated agent</div>
 
-      <div class="wallet">
-        <button onclick="connectWallet()">Connect Wallet</button>
-        <span id="balance">1420 Gems · 850 Credits</span>
+      <div class="brandrow">
+        <div class="brand">
+          <h1>E2Verse</h1>
+          <p>Real-world map. Virtual ownership. Claim, build, lease, trade.</p>
+        </div>
+        <div class="hdr-nlv" id="hdr-nlv"></div>
       </div>
-      <div id="holdings" class="holdings">◇ 0 tiles owned</div>
 
-      <nav>
-        <button onclick="showMap()">Map</button>
-        <button onclick="showEstate()">My Land</button>
-        <button onclick="showVoice()">Voice Claim</button>
-        <button onclick="showLive()">Live</button>
-        <button onclick="showDevelop()">Develop</button>
-        <button onclick="showLedger()">Ledger</button>
+      <div class="wallet" aria-label="Balances">
+        <div class="w-item">
+          <span class="w-label">Credits — trading</span>
+          <span id="w-credits"></span>
+        </div>
+        <div class="w-item">
+          <span class="w-label">Gems — build hours, returned</span>
+          <span id="w-gems"></span>
+        </div>
+        <div class="w-item w-escrow" id="w-escrow"></div>
+        <button class="w-connect" data-act="connect">Link simulated wallet</button>
+      </div>
+
+      <nav aria-label="Sections">
+        <button data-act="nav" data-view="map-view">Map</button>
+        <button data-act="nav" data-view="portfolio-view">Portfolio</button>
+        <button data-act="nav" data-view="market-view">Market</button>
+        <button data-act="nav" data-view="vault-view">Vault<span class="badge-dot" id="badge-pending"></span></button>
+        <button data-act="nav" data-view="voice-view">Voice</button>
+        <button data-act="nav" data-view="ledger-view">Ledger</button>
       </nav>
     </header>
 
-    <div id="map-view">
-      <div id="map" style="height:400px"></div>
-      <p id="map-info">Click any spot on the world to survey and claim that land. Price rises near prime hubs — gold tiles are yours.</p>
-    </div>
+    <main id="main">
+      <!-- ================= MAP ================= -->
+      <section id="map-view">
+        <div class="map-shell">
+          <div id="map" role="application" aria-label="World land map. Arrow keys pan, plus and minus zoom. A keyboard alternative is below the map."></div>
+          <div id="map-hint" class="map-hint" aria-hidden="true"></div>
+          <div id="map-scan" class="scan"></div>
+        </div>
 
-    <div id="estate-view" style="display:none">
-      <h2>My Land</h2>
-      <div id="estate-summary" class="estate-summary"></div>
-      <div id="estate-list"></div>
-      <p class="map-info">Value = base price × vitality × aura. Develop to grow it, sell to realize gains. Virtual land only.</p>
-    </div>
+        <div id="map-readout" class="readout"><span class="dim">Hover the map to survey a block · click to open it</span></div>
 
-    <div id="voice-view" style="display:none">
-      <h2>Voice Claim Land</h2>
-      <p>Speak to claim a tile — a stronger voice gives a bigger opening boost.</p>
-      <button onclick="claimWithVoice()">🎙 Speak to Claim Tile</button>
-      <div id="voice-status"></div>
-    </div>
+        <div class="maptools">
+          <div id="map-legend" class="legend" role="group" aria-label="Map layers"></div>
+          <span id="map-count" class="mapcount"></span>
+        </div>
 
-    <div id="live-view" style="display:none">
-      <h2>Live on Your Land</h2>
-      <p>Live tours of owned lands. Buy or claim a tile first, then host a tour from here.</p>
-    </div>
+        <details class="fold jump">
+          <summary>Open a block without the map (keyboard friendly)</summary>
+          <div class="jumprow">
+            <label for="jump-hub">Jump to a hub</label>
+            <select id="jump-hub"></select>
+            <button data-act="jump-hub">Go</button>
+          </div>
+          <div class="jumprow">
+            <label for="jump-lat">Coordinates</label>
+            <input id="jump-lat" type="number" step="0.1" placeholder="lat" aria-label="Latitude">
+            <input id="jump-lng" type="number" step="0.1" placeholder="lng" aria-label="Longitude">
+            <button data-act="jump-coords">Survey</button>
+          </div>
+          <p class="pnote">On the map itself: arrow keys pan, <kbd>+</kbd>/<kbd>−</kbd> zoom, and the zoom buttons are reachable by tab. On touch, one finger scrolls the page and two fingers move the map. On desktop, hold ⌘/Ctrl to zoom with the wheel.</p>
+        </details>
 
-    <div id="ledger-view" style="display:none">
-      <h2>Activity Ledger</h2>
-      <div id="ledger"></div>
-    </div>
+        <div id="tile-panel" class="tile-panel"></div>
+      </section>
 
-    <div id="develop-view" style="display:none">
-      <h2>Develop Your Tiles</h2>
-      <p>Build a structure on land you own to raise its value. A stronger voice builds a bigger structure.</p>
-      <div id="develop-hint">Own a tile first, then develop it here or from My Land.</div>
-      <button onclick="demoDevelop()">Develop My First Tile</button>
-    </div>
+      <!-- ================= PORTFOLIO ================= -->
+      <section id="portfolio-view" style="display:none">
+        <div id="portfolio-body"></div>
+      </section>
+
+      <!-- ================= MARKET ================= -->
+      <section id="market-view" style="display:none">
+        <h2>Market <span class="sim-day" id="sim-day"></span></h2>
+        <p class="lede">Appraisal (NLV) is what the valuation engine thinks a block is worth. The order book is what an agent will actually pay. The two disagree on purpose.</p>
+        <div id="market-body"></div>
+      </section>
+
+      <!-- ================= VAULT ================= -->
+      <section id="vault-view" style="display:none">
+        <h2>Vault</h2>
+        <p class="lede">Everything your land produces while you are away — resources, lease income, jewels — and everything it is currently building.</p>
+        <div id="vault-body"></div>
+      </section>
+
+      <!-- ================= VOICE ================= -->
+      <section id="voice-view" style="display:none">
+        <h2>Voice claim</h2>
+        <p class="lede">Speak while you claim and the microphone's measured energy becomes a permanent property of that block: higher starting vitality and aura, and a larger bonus on every structure you ever build there.</p>
+
+        <div class="voice-card">
+          <div class="meter" id="voice-meter" aria-hidden="true"><i></i></div>
+          <div class="voice-actions">
+            <button class="primary" data-act="voice">Speak to claim · 3s</button>
+            <button data-act="voice-skip">Claim without voice</button>
+          </div>
+          <div id="voice-status" class="voice-status">Energy is measured from the live waveform (RMS), never guessed. Nothing is locked behind the microphone — the silent path gives the baseline 0.35.</div>
+        </div>
+
+        <p class="pnote">The claim targets the block you last opened if it is never-minted, otherwise the nearest never-minted block to the centre of your map view.</p>
+      </section>
+
+      <!-- ================= LEDGER ================= -->
+      <section id="ledger-view" style="display:none">
+        <h2>Ledger</h2>
+        <p class="lede">Every claim, build, lease, offer and settlement, in order.</p>
+        <div id="ledger"></div>
+      </section>
+    </main>
+
     <footer class="site-footer">
+      <p class="foot-legal">E2Verse is a fictional simulation. Blocks, agents, prices and yields are generated by the page you are reading. No real property, currency, security or account is involved, and nothing here is financial advice. 18+.</p>
       <a href="https://hosuman08-netizen.github.io/legion-hub/">← More apps</a>
     </footer>
   </div>
 
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+  <div id="dialog-root" class="dlg-root"></div>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="script.js"></script>
-<script>window.LEGION_APP='land-tiles';window.LEGION_ANALYTICS_URL='https://legion-analytics.hoyashi95.workers.dev';</script>
-<script src="legion-beacon.js"></script>
+  <script>window.LEGION_APP='land-tiles';window.LEGION_ANALYTICS_URL='https://legion-analytics.hoyashi95.workers.dev';</script>
+  <script src="legion-beacon.js"></script>
 </body>
 </html>
