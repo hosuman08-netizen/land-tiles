@@ -54,28 +54,93 @@ function connectWallet() {
   updateUI();
 }
 
+// Featured prime locations — always drawn, hand-priced landmarks.
+const demoTiles = [
+  {id:1, lat:37.5, lng:127, name:"Seoul Tile", price:50},
+  {id:2, lat:40.7, lng:-74, name:"NYC Prime", price:120},
+  {id:3, lat:51.5, lng:-0.1, name:"London", price:80},
+  {id:4, lat:35.7, lng:139.7, name:"Tokyo", price:95}
+];
+
+// The world is a grid: any lat/lng snaps to a 0.4°×0.4° cell with a STABLE id.
+// Same cell → same id → same price, every visit. No randomness in what land costs.
+const GRID = 0.4;
+function cellOf(lat, lng) {
+  const gLat = Math.round(lat / GRID) * GRID;
+  const gLng = Math.round(lng / GRID) * GRID;
+  // id encodes the cell so ownership persists across sessions and reloads.
+  const id = `c_${Math.round(gLat*10)}_${Math.round(gLng*10)}`;
+  return { id, lat: +gLat.toFixed(4), lng: +gLng.toFixed(4) };
+}
+
+// Deterministic land price from location: proximity to a prime hub drives value.
+// Closer to a world city = pricier. Pure function of coordinates — display == code.
+function cellPrice(lat, lng) {
+  let nearest = Infinity;
+  demoTiles.forEach(h => {
+    const d = Math.hypot(lat - h.lat, lng - h.lng);
+    if (d < nearest) nearest = d;
+  });
+  // 18 Cr frontier land → up to ~140 Cr next to a hub. Smooth, honest falloff.
+  const proximity = Math.max(0, 1 - nearest / 60);
+  return Math.round(18 + proximity * proximity * 122);
+}
+
+// Human-readable name for an arbitrary cell (e.g. "Parcel 41.2°N, 12.5°E").
+function cellName(lat, lng) {
+  const ns = lat >= 0 ? 'N' : 'S';
+  const ew = lng >= 0 ? 'E' : 'W';
+  return `Parcel ${Math.abs(lat).toFixed(1)}°${ns}, ${Math.abs(lng).toFixed(1)}°${ew}`;
+}
+
+// Draw one tile's rectangle on the map (owned = gold, available = faint), wire buy.
+function drawTileRect(t) {
+  if (tileRects[t.id]) map.removeLayer(tileRects[t.id]);
+  const isOwned = owned.includes(t.id);
+  const half = GRID / 2;
+  const rect = L.rectangle([
+    [t.lat - half, t.lng - half],
+    [t.lat + half, t.lng + half]
+  ], {
+    color: isOwned ? '#c5a46e' : '#5a4a30',
+    weight: isOwned ? 2.5 : 1.5,
+    fillColor: isOwned ? '#c5a46e' : '#3a3124',
+    fillOpacity: isOwned ? 0.22 : 0.06
+  }).addTo(map);
+  tileRects[t.id] = rect;
+  rect.bindTooltip(() => tileTooltip(t), {sticky:true});
+  rect.on('click', () => buyTile(t, rect));
+  return rect;
+}
+
 function initMap() {
   map = L.map('map').setView([20, 0], 2);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OSM contributors | Virtual land only'
   }).addTo(map);
 
-  // Starter tiles - a live build would generate a dynamic grid.
-  const demoTiles = [
-    {id:1, lat:37.5, lng:127, name:"Seoul Tile", price:50},
-    {id:2, lat:40.7, lng:-74, name:"NYC Prime", price:120},
-    {id:3, lat:51.5, lng:-0.1, name:"London", price:80},
-    {id:4, lat:35.7, lng:139.7, name:"Tokyo", price:95}
-  ];
+  // Featured landmark tiles, always shown.
+  demoTiles.forEach(t => drawTileRect(t));
 
-  demoTiles.forEach(t => {
-    const rect = L.rectangle([
-      [t.lat-0.2, t.lng-0.2],
-      [t.lat+0.2, t.lng+0.2]
-    ], {color: owned.includes(t.id) ? '#c5a46e' : '#3a3124', weight:2}).addTo(map);
-    tileRects[t.id] = rect;
-    rect.bindTooltip(() => tileTooltip(t), {sticky:true});
-    rect.on('click', () => buyTile(t, rect));
+  // Every tile you already own gets drawn where it sits — the map is your holdings.
+  owned.forEach(id => {
+    if (tileRects[id]) return; // already a featured tile
+    const t = tileData[id];
+    if (t && typeof t.lat === 'number' && typeof t.lng === 'number') {
+      drawTileRect({ id, lat: t.lat, lng: t.lng, name: t.name, price: t.basePrice || t.paid || 0 });
+    }
+  });
+
+  // Click ANYWHERE on the world → survey the land cell there and offer to claim it.
+  map.on('click', e => {
+    const cell = cellOf(e.latlng.lat, e.latlng.lng);
+    if (tileRects[cell.id]) { tileRects[cell.id].fire('click'); return; } // existing tile
+    const price = cellPrice(cell.lat, cell.lng);
+    const tile = { id: cell.id, lat: cell.lat, lng: cell.lng, name: cellName(cell.lat, cell.lng), price };
+    // Survey first: confirm before spending, so a stray map click never buys land.
+    if (credits < price) { alert(`${tile.name}\nSurvey price ${price} Cr — not enough Credits.`); return; }
+    if (!confirm(`${tile.name}\nSurvey value: ${price} Credits.\nClaim this land?`)) return;
+    buyTile(tile, null);
   });
 }
 
@@ -104,7 +169,13 @@ function buyTile(tile, rect) {
   credits -= cost;
   owned.push(tile.id);
   localStorage.setItem('p11_owned', JSON.stringify(owned));
-  if (rect) rect.setStyle({color: '#c5a46e'});
+  // Reflect the claim on the map: recolor an existing rect, or draw a brand-new
+  // owned tile where the user clicked. The map now mirrors your holdings.
+  if (rect) {
+    rect.setStyle({ color: '#c5a46e', weight: 2.5, fillColor: '#c5a46e', fillOpacity: 0.22 });
+  } else if (map) {
+    drawTileRect({ id: tile.id, lat: tile.lat, lng: tile.lng, name: tile.name, price: tile.price });
+  }
 
   // Record the full asset so the portfolio & value engine have real data.
   // basePrice = purchase price is the anchor market value grows from.
@@ -209,8 +280,8 @@ function renderEstate() {
         paid ${paid} Cr · vitality ${(t.vitality||1).toFixed(2)} · aura ${(t.aura||0).toFixed(2)}${builds ? ` · ${builds} build${builds>1?'s':''}` : ''}
       </div>
       <div class="estate-actions">
-        <button onclick="developTile(${id}, '${(name+'').replace(/'/g,'')}'); renderEstate();">🏗 Develop (+value)</button>
-        <button class="sell-btn" onclick="sellTile(${id})">💱 Sell for ${value.toFixed(0)} Cr</button>
+        <button onclick="developTile('${id}', '${(name+'').replace(/'/g,'')}'); renderEstate();">🏗 Develop (+value)</button>
+        <button class="sell-btn" onclick="sellTile('${id}')">💱 Sell for ${value.toFixed(0)} Cr</button>
       </div>
     </div>`;
   }).join('');
@@ -245,8 +316,17 @@ function sellTile(id) {
   owned.splice(idx, 1);
   localStorage.setItem('p11_owned', JSON.stringify(owned));
 
-  // Free the demo tile so it can be re-bought; recolor its rect back to unowned.
-  if (tileRects[id]) tileRects[id].setStyle({ color: '#3a3124' });
+  // Return the land to the market. Featured landmark tiles recolor to available
+  // and stay clickable; a surveyed cell simply leaves the map (frontier again).
+  const isFeatured = demoTiles.some(d => d.id === id);
+  if (tileRects[id]) {
+    if (isFeatured) {
+      tileRects[id].setStyle({ color: '#5a4a30', weight: 1.5, fillColor: '#3a3124', fillOpacity: 0.06 });
+    } else {
+      map.removeLayer(tileRects[id]);
+      delete tileRects[id];
+    }
+  }
   delete tileData[id];
   saveTileData();
 
@@ -266,7 +346,7 @@ function showLive() {
   if (owned.length > 0) {
     const name = (tileData[owned[0]] && tileData[owned[0]].name) || 'your tile';
     liveDiv.innerHTML = `<h2>Live on Your Land</h2><p>Host a live tour anchored to your tile. A live session permanently boosts that tile's aura.</p>
-    <button onclick="hostLiveTour(${owned[0]}, '${(name+'').replace(/'/g,'')}')">🔴 Host Live Tour on ${name}</button>`;
+    <button onclick="hostLiveTour('${owned[0]}', '${(name+'').replace(/'/g,'')}')">🔴 Host Live Tour on ${name}</button>`;
   } else {
     liveDiv.innerHTML = `<h2>Live on Your Land</h2><p>Live tours of owned lands. Buy or claim a tile first, then host a tour from here.</p>`;
   }
@@ -333,7 +413,10 @@ function reobserveLand() {
 
 // Develop: build a structure on an owned tile, raising its value.
 function developTile(tileId, name) {
-  if (!owned.includes(parseInt(tileId))) {
+  // Normalize: numeric tile ids come back as pure-digit strings from onclick;
+  // surveyed-cell ids stay strings. Match whichever form is in `owned`.
+  if (typeof tileId === 'string' && /^\d+$/.test(tileId)) tileId = parseInt(tileId);
+  if (!owned.includes(tileId)) {
     alert('Buy or claim this tile first.');
     return;
   }
