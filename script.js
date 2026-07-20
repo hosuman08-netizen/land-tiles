@@ -349,6 +349,58 @@ const market = Object.assign({
   lastTick: 0
 }, load(LS.market, {}) || {});
 
+
+/* ── 5H retention loop (land-tiles sim) ───────────────────── */
+function ltDayKey(off){const d=new Date();d.setDate(d.getDate()+(off||0));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function bumpLtStreak(kind){
+  try{
+    let st=JSON.parse(localStorage.getItem('lt_streak')||'{}');
+    const t0=ltDayKey(0);
+    if(st.last!==t0){
+      const y=ltDayKey(-1), y2=ltDayKey(-2);
+      if(st.last&&st.last!==y&&st.last===y2&&(st.count||0)>=3){
+        const ready=!st.shieldLast||((new Date(t0)-new Date(st.shieldLast))/86400000)>=7;
+        if(ready){st.shieldLast=t0;st.last=y;try{legionTrack('streak_freeze',{count:st.count})}catch(e){}}
+      }
+      st.count=(st.last===y)?(st.count||0)+1:1; st.last=t0;
+      localStorage.setItem('lt_streak',JSON.stringify(st));
+      try{legionTrack('streak',{count:st.count,kind:kind||'act'})}catch(e){}
+    }
+    const k='lt_day_'+t0; let day=JSON.parse(localStorage.getItem(k)||'{"buys":0,"bids":0}');
+    if(kind==='buy') day.buys=(day.buys||0)+1;
+    if(kind==='bid') day.bids=(day.bids||0)+1;
+    localStorage.setItem(k,JSON.stringify(day));
+    renderLtLoop();
+  }catch(e){}
+}
+function renderLtLoop(){
+  try{
+    let el=document.getElementById('ltLoop');
+    if(!el){
+      el=document.createElement('div'); el.id='ltLoop';
+      el.style.cssText='margin:8px 12px;padding:10px;border:1px solid #2a2438;border-radius:12px;font-size:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:#0e1218';
+      const host=document.querySelector('header')||document.querySelector('h1')||document.body;
+      host.insertAdjacentElement('afterend', el);
+    }
+    const st=JSON.parse(localStorage.getItem('lt_streak')||'{}');
+    const day=JSON.parse(localStorage.getItem('lt_day_'+ltDayKey(0))||'{}');
+    const end=new Date(); end.setHours(24,0,0,0);
+    const ms=Math.max(0,end-Date.now());
+    const clock=Math.floor(ms/3600000)+'h '+Math.floor((ms%3600000)/60000)+'m';
+    const own=(typeof owned!=='undefined'&&owned)?owned.length:0;
+    el.innerHTML='<span>🔥 '+(st.count||0)+'d</span><span>today buy '+(day.buys||0)+'</span><span>bid '+(day.bids||0)+'</span><span>owned '+own+'</span><span>reset '+clock+'</span>'
+      +'<button type="button" id="ltShare" style="margin-left:auto;padding:6px 10px;border:0;border-radius:8px;background:#1c1826;color:#ece8f1">share</button>'
+      +'<span style="opacity:.65;font-size:11px">fictional land sim · not real estate</span>';
+    const b=document.getElementById('ltShare');
+    if(b) b.onclick=function(){
+      const text='Land Tiles sim · 🔥'+(st.count||0)+'d · owned '+own+' · https://hosuman08-netizen.github.io/land-tiles/\nFICTIONAL ONLY';
+      if(navigator.share) navigator.share({text}).catch(function(){});
+      else if(navigator.clipboard) navigator.clipboard.writeText(text);
+      try{legionTrack('share_peak',{})}catch(e){}
+    };
+  }catch(e){}
+}
+
 function saveAll() {
   save(LS.owned, owned);
   save(LS.tiles, tileData);
@@ -845,6 +897,7 @@ function buyFromAgent(id) {
   market.boughtFromAgents.push(id);
   acquire(id, l.ask, 'Bought from ' + l.seller + ' on the exchange');
   toast('Acquired from ' + l.seller + ' for ' + l.ask + ' Cr', 'good');
+  try{bumpLtStreak('buy');}catch(e){}
 }
 
 /* Offers on the player's own listings.
@@ -946,6 +999,7 @@ function rejectOffer(id, key) {
 /* Bids on blocks that are NOT listed. Credits move into escrow immediately and
    are returned if the holder declines — the escrow is what makes a bid credible. */
 async function placeBid(id) {
+  try{ /* retention */ }catch(e){}
   if (isOwned(id)) { toast('You already hold this block.', 'warn'); return; }
   const st = baseCellState(id);
   if (st === 'virgin') { toast('Never-minted land cannot be bid on — claim it directly.', 'warn'); return; }
@@ -1073,6 +1127,7 @@ function tName(id) {
 }
 
 function acquire(id, cost, note) {
+  try{bumpLtStreak('buy');}catch(e){}
   const m = cellMeta(id);
   if (!m) return;
   if (!isOwned(id)) owned.push(id);
@@ -2350,6 +2405,7 @@ function renderLedger() {
 }
 
 function renderAll() {
+  try{renderLtLoop();}catch(e){}
   updateUI();
   renderTilePanel();
   const p = document.getElementById('portfolio-view');
